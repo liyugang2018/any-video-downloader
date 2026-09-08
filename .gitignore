@@ -1,0 +1,12 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# PyInstaller 产物（exe 走 GitHub Releases 分发）
+build/
+dist/
+*.spec
+
+# 运行时生成
+selftest_result.txt
