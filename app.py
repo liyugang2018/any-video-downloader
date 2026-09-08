@@ -27,6 +27,11 @@ if sys.stderr is None:
 APP_TITLE = "万能视频下载"
 DEFAULT_DIR_NAME = "Videos"
 
+# --demo 演示模式预填的示例链接（用于截图/展示，不影响正常使用）
+DEMO_URLS = ("https://www.bilibili.com/video/BV1GJ411x7h7\n"
+             "https://www.douyin.com/video/7301234567890123456\n"
+             "https://x.com/i/status/17370000000000000000")
+
 # 登录方式下拉选项 -> 处理方式
 COOKIE_AUTO = "自动（已登录站点自动使用）"
 COOKIE_GUEST = "不使用（游客模式）"
@@ -508,7 +513,10 @@ def main() -> None:
     if "--selftest" in sys.argv:
         _selftest()
         return
-    App().run()
+    app = App()
+    if "--demo" in sys.argv:  # 演示模式：预填示例链接（截图/展示用）
+        app.url_text.insert("1.0", DEMO_URLS)
+    app.run()
 
 
 if __name__ == "__main__":
