@@ -11,7 +11,8 @@ if not exist venv\Scripts\pyinstaller.exe (
     exit /b 1
 )
 
-venv\Scripts\pyinstaller.exe --noconfirm --onefile --windowed --collect-all yt_dlp --name VideoDownloader app.py
+rem --collect-all yt_dlp_ejs: YouTube JS 挑战求解脚本（yt-dlp 官方伴生包，版本需与 yt-dlp 配套）
+venv\Scripts\pyinstaller.exe --noconfirm --onefile --windowed --collect-all yt_dlp --collect-all yt_dlp_ejs --name VideoDownloader app.py
 if errorlevel 1 (
     echo [错误] 打包失败
     pause

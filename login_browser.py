@@ -42,6 +42,14 @@ SITE_CONFIGS = {
         "login_markers": ["auth_token"],
         "cookie_file": "twitter.txt",
     },
+    "youtube": {
+        # google.com 域的 SID/SAPISID 等登录 cookie 一并导出（yt-dlp 按域使用）
+        "name": "YouTube",
+        "domains": ["youtube.com", "youtu.be", "google.com"],
+        "url": "https://www.youtube.com/",
+        "login_markers": ["LOGIN_INFO", "SAPISID"],  # 两者都只在登录后出现
+        "cookie_file": "youtube.txt",
+    },
     "bilibili": {
         "name": "Bilibili",
         "domains": ["bilibili.com", "biliapi.net", "bilivideo.com",

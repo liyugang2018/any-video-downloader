@@ -15,6 +15,7 @@ from pathlib import Path
 
 import downloader
 import ffmpeg_manager
+import js_runtime_manager
 import login_browser
 import proxy_manager
 
@@ -37,6 +38,7 @@ COOKIE_AUTO = "自动（已登录站点自动使用）"
 COOKIE_GUEST = "不使用（游客模式）"
 COOKIE_TXT = "使用 cookies.txt 文件…"
 LOGIN_TWITTER = "登录 X (Twitter)…"
+LOGIN_YOUTUBE = "登录 YouTube…"
 LOGIN_BILI = "登录 B站…"
 LOGIN_DOUYIN = "登录抖音…"
 LOGIN_IXIGUA = "登录西瓜视频…"
@@ -54,6 +56,7 @@ class App:
         self.task_thread: threading.Thread | None = None
         self.stop_event = threading.Event()
         self.ffmpeg_dir: Path | None = None
+        self.js_runtime_path: str | None = None  # deno.exe（YouTube 解析需要）
         self.cookies_file: str | None = None
         self.login_session: login_browser.LoginSession | None = None
         self.login_stop = threading.Event()
@@ -96,7 +99,7 @@ class App:
         ttk.Label(frame, text="登录方式：").grid(row=2, column=0, sticky="w")
         self.browser_var = tk.StringVar(value=COOKIE_AUTO)
         browser_values = [COOKIE_AUTO, COOKIE_GUEST, COOKIE_TXT,
-                          LOGIN_TWITTER, LOGIN_BILI, LOGIN_DOUYIN,
+                          LOGIN_TWITTER, LOGIN_YOUTUBE, LOGIN_BILI, LOGIN_DOUYIN,
                           LOGIN_IXIGUA, LOGIN_WEIBO] + list(downloader.BROWSERS.keys())
         self.browser_box = ttk.Combobox(
             frame, textvariable=self.browser_var, values=browser_values,
@@ -145,6 +148,9 @@ class App:
             if found:  # 存下路径，下载时直接复用，不再重复获取
                 self.ffmpeg_dir = found
             self.events.put(("ffmpeg_status", bool(found)))
+            deno = js_runtime_manager.find_deno()
+            if deno:  # deno 供 YouTube 解析用，缺失时在下载前自动获取
+                self.js_runtime_path = str(deno)
             proxy = proxy_manager.detect_proxy()
             self.events.put(("proxy_status", proxy))
         threading.Thread(target=worker, daemon=True).start()
@@ -154,6 +160,15 @@ class App:
         if self.ffmpeg_dir is None:
             self.ffmpeg_dir = ffmpeg_manager.download_ffmpeg(log)
             self.events.put(("ffmpeg_status", self.ffmpeg_dir is not None))
+
+    def _ensure_js_runtime(self, url: str, emit) -> None:
+        """YouTube 链接下载前调用：确保 deno 可用（没有则自动下载）。"""
+        if self.js_runtime_path is None:
+            proxy = proxy_manager.proxy_for(url)  # GitHub 备源需要
+            found = js_runtime_manager.download_deno(
+                lambda msg: emit({"type": "log", "msg": msg}), proxy=proxy)
+            if found:
+                self.js_runtime_path = str(found)
 
     # ---------- 交互 ----------
 
@@ -173,12 +188,13 @@ class App:
                 self.cookie_hint.configure(text=f"cookies 文件：{path}", foreground="#16a34a")
             else:
                 self.browser_var.set(COOKIE_AUTO)
-        elif choice in (LOGIN_TWITTER, LOGIN_BILI, LOGIN_DOUYIN,
+        elif choice in (LOGIN_TWITTER, LOGIN_YOUTUBE, LOGIN_BILI, LOGIN_DOUYIN,
                         LOGIN_IXIGUA, LOGIN_WEIBO):
             # 动作项：触发后下拉恢复默认，由弹出的登录窗口接管
             self.browser_var.set(COOKIE_AUTO)
             site_map = {
-                LOGIN_TWITTER: "twitter", LOGIN_BILI: "bilibili",
+                LOGIN_TWITTER: "twitter", LOGIN_YOUTUBE: "youtube",
+                LOGIN_BILI: "bilibili",
                 LOGIN_DOUYIN: "douyin", LOGIN_IXIGUA: "ixigua",
                 LOGIN_WEIBO: "weibo",
             }
@@ -306,7 +322,8 @@ class App:
             url=url, output_dir=ui["out_dir"], browser=browser,
             cookies_file=cookies_file,
             ffmpeg_dir=str(self.ffmpeg_dir) if self.ffmpeg_dir else None,
-            user_agent=user_agent, proxy=proxy_manager.proxy_for(url))
+            user_agent=user_agent, proxy=proxy_manager.proxy_for(url),
+            js_runtime_path=self.js_runtime_path)
 
     def _worker(self, urls: list[str], ui: dict) -> None:
         def emit(event: dict) -> None:
@@ -321,6 +338,8 @@ class App:
                 break
             self._batch_pos = (i, total)
             self.events.put(("batch_pos", (i, total)))
+            if login_browser.match_site_for_url(url) == "youtube":
+                self._ensure_js_runtime(url, emit)  # YouTube 解析需要 JS 运行时
             opts = self._build_opts(url, ui, emit)
             result = downloader.run_download(opts, emit, self.stop_event)
             if result.get("cancelled"):
@@ -502,6 +521,8 @@ def _selftest() -> None:
         lines.append(f"解析器数量: {len(classes)}")
         for key in ("bilibili", "twitter", "youtube"):
             lines.append(f"  {key}: {'存在' if key in names else '缺失'}")
+        import yt_dlp_ejs  # YouTube 挑战求解脚本包（打包必须收集，否则 YouTube 下载失败）
+        lines.append(f"yt_dlp_ejs: 可用（v{yt_dlp_ejs.version}）")
         lines.append("SELFTEST OK" if len(classes) > 1000 else "SELFTEST WARN: 解析器数量异常")
     except Exception as exc:
         lines.append(f"SELFTEST FAILED: {exc!r}")

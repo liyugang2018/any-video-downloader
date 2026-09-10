@@ -154,6 +154,7 @@ class DownloadOptions:
     ffmpeg_dir: Optional[str] = None     # 含 ffmpeg.exe / ffprobe.exe 的目录
     user_agent: Optional[str] = None     # 与 cookies 配套的 UA，降低站点风控概率
     proxy: Optional[str] = None          # 代理（访问被墙站点时由上层探测填入）
+    js_runtime_path: Optional[str] = None  # deno.exe 路径（YouTube 解析需要 JS 运行时）
     noplaylist: bool = True              # 合集/列表页只下载当前视频
 
 
@@ -327,6 +328,9 @@ def run_download(opts: DownloadOptions, emit: EventCallback, stop_event=None) ->
     if opts.proxy:
         ydl_opts["proxy"] = opts.proxy
         emit({"type": "log", "msg": f"使用代理：{opts.proxy}"})
+    if opts.js_runtime_path:
+        # 显式指定 deno 路径，不依赖 PATH（打包环境无全局 deno）
+        ydl_opts["js_runtimes"] = {"deno": {"path": opts.js_runtime_path}}
 
     result = {"ok": False, "title": "", "files": [], "cancelled": False, "error": None}
     try:
