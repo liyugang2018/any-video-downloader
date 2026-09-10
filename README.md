@@ -26,6 +26,8 @@ batch download and auto proxy detection. Single portable exe, no installation.
 - **自动代理探测**：下载 X / YouTube 等被墙站点时自动使用本地代理
   （Clash 7890、v2rayN 10809 等常见端口，无需手动配置）
 - **ffmpeg 全自动**：合并高清音视频所需，首次下载自动获取，无需人工干预
+- **deno 自动配置**：YouTube 解析需要 JS 运行时（yt-dlp 官方要求），首次下载
+  YouTube 时自动获取（约 41MB，只需一次）
 - **免安装绿色软件**：单个 exe，双击即用，不写注册表；下载的登录状态、
   ffmpeg 等数据集中在 `%LOCALAPPDATA%\VideoDownloader`
 - **中文错误翻译**：常见报错（需要登录、地区限制、请求频繁、站点改版等）
@@ -44,6 +46,8 @@ batch download and auto proxy detection. Single portable exe, no installation.
 | 小红书 | 不支持 | 无公开解析途径 |
 
 > 海外站（X/Twitter、YouTube、TikTok 等）需开启代理软件，程序自动探测常见端口。
+> YouTube 首次下载会自动弹出登录窗口（Google 账号登录一次长期有效），并自动获取
+> JS 运行时 deno；X 公开推文开代理即可直接下载。
 > 其他 yt-dlp 支持的站点（[完整列表](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md)）同样可下。
 
 ## 下载与使用
@@ -64,7 +68,7 @@ batch download and auto proxy detection. Single portable exe, no installation.
 
 | 问题 | 说明 |
 |------|------|
-| X（Twitter）/ YouTube 下载需要什么 | 两件事：1) **开代理软件**（程序自动探测 Clash 7890 / v2rayN 10809 等常见端口，无需配置）；2) 部分推文需要登录（会自动弹登录窗口）。公开推文开代理即可直接下载 |
+| X（Twitter）/ YouTube 下载需要什么 | 两件事：1) **开代理软件**（程序自动探测 Clash 7890 / v2rayN 10809 等常见端口，无需配置）；2) X 部分推文、YouTube 全部视频需要登录（会自动弹登录窗口，登录一次长期有效） |
 | 提示"无法连接到该网站" | 被墙站点直连被阻断。开启代理软件后重试；若代理端口不在常见列表，请在代理软件里开启"系统代理"或改为常见端口 |
 | 弹出登录窗口 | 这是正常流程：视频需要登录才能下载，在弹出的窗口里登录，登录成功后程序自动继续下载（批量下载时自动从断点接着下） |
 | B站只有 480P | 未登录状态的上限。用"登录 B站…"弹窗登录后可拿更高清晰度（会员清晰度需大会员账号） |
@@ -79,7 +83,7 @@ batch download and auto proxy detection. Single portable exe, no installation.
 
 ```bash
 python -m venv venv
-venv\Scripts\python -m pip install yt-dlp pyinstaller
+venv\Scripts\python -m pip install yt-dlp yt-dlp-ejs pyinstaller
 
 # 运行界面（--demo 为预填示例链接的演示模式）
 venv\Scripts\python app.py [--demo]
@@ -103,6 +107,7 @@ powershell -File screenshot.ps1
 | `login_browser.py` | 站点登录向导：CDP 弹窗登录、cookies 存档、UA 记录 |
 | `proxy_manager.py` | 本地代理探测（被墙站点自动走 Clash/v2rayN 等常见端口） |
 | `ffmpeg_manager.py` | ffmpeg 检测与自动下载（npmmirror / gyan.dev / GitHub 三源容错） |
+| `js_runtime_manager.py` | deno（JS 运行时）检测与自动下载，YouTube 解析所需 |
 | `build.bat` | 一键重新打包 |
 | `screenshot.ps1` | 重新生成 README 用界面截图 |
 
